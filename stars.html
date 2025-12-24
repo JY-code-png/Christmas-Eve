@@ -1,171 +1,406 @@
-<!--
- * @Author: Tina Huang
- * @Date: 2022-12-10 15:19:04
- * @LastEditors: Tina Huang
- * @LastEditTime: 2022-12-10 15:20:57
- * @Description: 
--->
-
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title></title>
-  </head>
-  <style>
-    body {
-      margin: 0 auto;
-      overflow: hidden;
-    }
-    .canvas {
-      position: absolute;
-      display: inline-block;
-      width: 100%;
-      height: auto;
-      vertical-align: baseline;
-      z-index: -2;
-    }
-  </style>
-  <body>
-    <canvas id="canvas" class="canvas"></canvas>
-  </body>
-  <script>
-    drawStars();
-    //画星空背景
-    function drawStars() {
-      var canvas = document.getElementById("canvas"),
-        ctx = canvas.getContext("2d"),
-        w = (canvas.width = window.innerWidth),
-        h = (canvas.height = window.innerHeight),
-        hue = 217, //色调色彩
-        stars = [], //保存所有星星
-        count = 0, //用于计算星星
-        maxStars = 1300; //星星数量
-
-      //canvas2是用来创建星星的源图像，即母版，
-      //根据星星自身属性的大小来设置
-      var canvas2 = document.createElement("canvas"),
-        ctx2 = canvas2.getContext("2d");
-      canvas2.width = 100;
-      canvas2.height = 100;
-      //创建径向渐变，从坐标(half，half)半径为0的圆开始，
-      //到坐标为(half,half)半径为half的圆结束
-      var half = canvas2.width / 2,
-        gradient2 = ctx2.createRadialGradient(half, half, 0, half, half, half);
-      gradient2.addColorStop(0.025, "#CCC");
-      //hsl是另一种颜色的表示方式，
-      //h->hue,代表色调色彩，0为red，120为green，240为blue
-      //s->saturation，代表饱和度，0%-100%
-      //l->lightness，代表亮度，0%为black，100%位white
-      gradient2.addColorStop(0.1, "hsl(" + hue + ", 61%, 33%)");
-      gradient2.addColorStop(0.25, "hsl(" + hue + ", 64%, 6%)");
-      gradient2.addColorStop(1, "transparent");
-
-      ctx2.fillStyle = gradient2;
-      ctx2.beginPath();
-      ctx2.arc(half, half, half, 0, Math.PI * 2);
-      ctx2.fill();
-
-      // End cache
-      function random(min, max) {
-        if (arguments.length < 2) {
-          max = min;
-          min = 0;
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>致亲爱的张女士</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #020111 0%, #202b38 100%);
+            font-family: "Microsoft YaHei", "Heiti SC", sans-serif; /* 改为更适合中文的字体 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #fff;
         }
 
-        if (min > max) {
-          var hold = max;
-          max = min;
-          min = hold;
+        /* 遮罩层 */
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 1.5s ease;
+            cursor: pointer;
+        }
+        
+        #btn-play {
+            padding: 12px 35px;
+            font-size: 18px;
+            border: 2px solid #FFD700;
+            color: #FFD700;
+            background: transparent;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+            animation: breathe 2.5s infinite;
+            letter-spacing: 2px;
         }
 
-        //返回min和max之间的一个随机值
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-      }
-
-      function maxOrbit(x, y) {
-        var max = Math.max(x, y),
-          diameter = Math.round(Math.sqrt(max * max + max * max));
-        //星星移动范围，值越大范围越小，
-        return diameter / 2;
-      }
-
-      var Star = function () {
-        //星星移动的半径
-        this.orbitRadius = random(maxOrbit(w, h));
-        //星星大小，半径越小，星星也越小，即外面的星星会比较大
-        this.radius = random(60, this.orbitRadius) / 8;
-        //所有星星都是以屏幕的中心为圆心
-        this.orbitX = w / 2;
-        this.orbitY = h / 2;
-        //星星在旋转圆圈位置的角度,每次增加speed值的角度
-        //利用正弦余弦算出真正的x、y位置
-        this.timePassed = random(0, maxStars);
-        //星星移动速度
-        this.speed = random(this.orbitRadius) / 50000;
-        //星星图像的透明度
-        this.alpha = random(2, 10) / 10;
-
-        count++;
-        stars[count] = this;
-      };
-
-      Star.prototype.draw = function () {
-        //星星围绕在以屏幕中心为圆心，半径为orbitRadius的圆旋转
-        var x = Math.sin(this.timePassed) * this.orbitRadius + this.orbitX,
-          y = Math.cos(this.timePassed) * this.orbitRadius + this.orbitY,
-          twinkle = random(10);
-
-        //星星每次移动会有1/10的几率变亮或者变暗
-        if (twinkle === 1 && this.alpha > 0) {
-          //透明度降低，变暗
-          this.alpha -= 0.05;
-        } else if (twinkle === 2 && this.alpha < 1) {
-          //透明度升高，变亮
-          this.alpha += 0.05;
+        @keyframes breathe {
+            0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.4); transform: scale(1); }
+            50% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.8); transform: scale(1.05); }
         }
 
-        ctx.globalAlpha = this.alpha;
-        //使用canvas2作为源图像来创建星星，
-        //位置在x - this.radius / 2, y - this.radius / 2
-        //大小为 this.radius
-        ctx.drawImage(
-          canvas2,
-          x - this.radius / 2,
-          y - this.radius / 2,
-          this.radius,
-          this.radius
-        );
-        //没旋转一次，角度就会增加
-        this.timePassed += this.speed;
-      };
-
-      //初始化所有星星
-      for (var i = 0; i < maxStars; i++) {
-        new Star();
-      }
-
-      function animation() {
-        //以新图像覆盖已有图像的方式进行绘制背景颜色
-        ctx.globalCompositeOperation = "source-over";
-        ctx.globalAlpha = 0.5; //尾巴
-        ctx.fillStyle = "hsla(" + hue + ", 64%, 6%, 2)";
-        ctx.fillRect(0, 0, w, h);
-
-        //源图像和目标图像同时显示，重叠部分叠加颜色效果
-        ctx.globalCompositeOperation = "lighter";
-        for (var i = 1, l = stars.length; i < l; i++) {
-          stars[i].draw();
+        /* 祝福语容器 */
+        #text-container {
+            position: absolute;
+            top: 12%;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 10;
+            pointer-events: none;
+            width: 85%;
+            max-width: 600px;
         }
 
-        //调用该方法执行动画，并且在重绘的时候调用指定的函数来更新动画
-        //回调的次数通常是每秒60次
-        window.requestAnimationFrame(animation);
-      }
+        .typing-line {
+            font-size: 1.2rem;
+            margin: 12px 0;
+            min-height: 1.5em;
+            text-shadow: 0 0 8px rgba(255,255,255,0.6);
+            opacity: 0;
+            transition: opacity 0.8s ease-in;
+            letter-spacing: 1px;
+        }
+        
+        /* 特殊文字样式 */
+        .highlight { color: #FFD700; text-shadow: 0 0 15px #FFD700; font-weight: bold; font-size: 1.5rem;}
+        .name { color: #FF69B4; text-shadow: 0 0 10px #FF69B4; font-size: 1.4rem; margin-bottom: 20px; font-weight: bold;}
+        .warm { color: #ffa07a; font-size: 1.1rem; }
 
-      animation();
-    }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
 
-    // 
-  </script>
+    <!-- 
+      注意：请在同级目录下放入一个名为 bgm.mp3 的音乐文件
+      或者将 src 修改为在线音乐链接 
+    -->
+    <audio id="bgm" src="./bgm.mp3" loop></audio>
+
+    <!-- 遮罩层 -->
+    <div id="overlay">
+        <div style="font-size: 40px; margin-bottom: 20px;">🎁</div>
+        <h1 style="color: #FFD700; text-shadow: 0 0 20px #FFD700; margin-bottom: 40px; font-weight: normal; font-size: 24px;">To: 亲爱的妈妈</h1>
+        <button id="btn-play">点这里 查收惊喜</button>
+    </div>
+
+    <!-- 文字显示区域 -->
+    <div id="text-container"></div>
+
+    <script>
+        // === 1. 定制祝福语 (妈妈专属版) ===
+        const messages = [
+            { text: "TO: 最美丽的张女士 🌹", class: "name" },
+            { text: "这是一个为您准备的小惊喜 ✨", class: "warm" },
+            { text: "祝您平安夜快乐 🍎", class: "highlight" },
+            { text: "在这个特别的日子里我想说：", class: "" },
+            { text: "您也是我的礼物 🎁", class: "highlight" },
+            { text: "祝您永远健康、年轻、快乐 ❤️", class: "warm" },
+            { text: "爱您的孩子", class: "name" }
+        ];
+
+        // === 2. 核心初始化 ===
+        const canvas = document.createElement('canvas');
+        document.body.appendChild(canvas);
+        const ctx = canvas.getContext('2d');
+        const overlay = document.getElementById('overlay');
+        const bgm = document.getElementById('bgm');
+        const textContainer = document.getElementById('text-container');
+
+        let w, h;
+        let particles = [];
+        let angle = 0; 
+        let treeBottomY; 
+
+        function resize() {
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
+            // 调整树的位置，适配不同屏幕
+            treeBottomY = h / 2 + 150; 
+            if(h < 600) treeBottomY = h / 2 + 120;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // 交互：点击播放
+        document.getElementById('btn-play').addEventListener('click', () => {
+            // 尝试播放音乐
+            bgm.play().catch(e => console.log("请点击页面互动以播放音乐"));
+            
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                startTyping(); // 遮罩消失后开始打字
+            }, 1000);
+        });
+
+        // 打字机效果
+        function startTyping() {
+            let lineIndex = 0;
+            function typeNextLine() {
+                if (lineIndex >= messages.length) return;
+                const msgData = messages[lineIndex];
+                const p = document.createElement('p');
+                p.className = `typing-line ${msgData.class || ''}`;
+                textContainer.appendChild(p);
+                
+                // 淡入效果
+                requestAnimationFrame(() => p.style.opacity = '1');
+
+                let charIndex = 0;
+                // 打字速度
+                const timer = setInterval(() => {
+                    if (charIndex < msgData.text.length) {
+                        p.textContent += msgData.text.charAt(charIndex);
+                        charIndex++;
+                    } else {
+                        clearInterval(timer);
+                        lineIndex++;
+                        // 每行之间的停顿
+                        setTimeout(typeNextLine, 1200);
+                    }
+                }, 100);
+            }
+            typeNextLine();
+        }
+
+        // === 3. 场景绘制逻辑 (亲情主题) ===
+
+        function drawTrunk() {
+            const trunkW = 40;
+            const trunkH = 60;
+            const x = w / 2 - trunkW / 2;
+            const y = treeBottomY;
+            
+            const grd = ctx.createLinearGradient(x, y, x + trunkW, y);
+            grd.addColorStop(0, '#3E2723');
+            grd.addColorStop(0.5, '#6D4C41');
+            grd.addColorStop(1, '#3E2723');
+            
+            ctx.fillStyle = grd;
+            ctx.fillRect(x, y, trunkW, trunkH);
+        }
+
+        // 绘制温馨的“母子/母女”剪影
+        function drawMomAndChild() {
+            const centerX = w / 2;
+            const groundY = treeBottomY + 50; 
+            
+            // 呼吸动画
+            const time = Date.now() * 0.002;
+            const sway = Math.sin(time) * 1.5; 
+
+            // 通用画人函数
+            function drawFigure(offsetX, scale, color, headTilt) {
+                ctx.save();
+                ctx.translate(centerX + offsetX, groundY);
+                // 轻微摇摆
+                ctx.rotate(sway * 0.01 * headTilt); 
+                
+                ctx.scale(scale, scale); // 缩放控制大人小孩
+
+                // 身体 (简单的柔和梯形)
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.moveTo(0, -50); // 颈部
+                ctx.quadraticCurveTo(-15, -20, -20, 0); // 左侧身
+                ctx.lineTo(20, 0); // 底部
+                ctx.quadraticCurveTo(15, -20, 0, -50); // 右侧身
+                ctx.fill();
+
+                // 头
+                ctx.beginPath();
+                ctx.arc(0, -58, 9, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            // 绘制牵手的手臂
+            ctx.beginPath();
+            ctx.strokeStyle = '#F06292'; // 温暖的粉色线条
+            ctx.lineWidth = 2;
+            // 妈妈的手
+            ctx.moveTo(centerX - 35, groundY - 35); 
+            ctx.quadraticCurveTo(centerX, groundY - 30, centerX + 35, groundY - 25);
+            ctx.stroke();
+
+            // 妈妈 (左边，高一点，颜色成熟温暖)
+            drawFigure(-45, 1.1, '#D81B60', 1); 
+            
+            // 孩子 (右边，小一点，颜色活泼)
+            drawFigure(45, 0.8, '#FF80AB', -1);
+
+            // 中间跳动的爱心
+            const scale = 1 + Math.sin(time * 3) * 0.15;
+            ctx.save();
+            ctx.translate(centerX, groundY - 60);
+            ctx.scale(scale, scale);
+            ctx.fillStyle = '#FFD700'; // 金色爱心
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#FFD700';
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.bezierCurveTo(-6, -6, -12, 0, 0, 12);
+            ctx.bezierCurveTo(12, 0, 6, -6, 0, 0);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // === 4. 粒子系统 (金色圣诞树) ===
+        class Particle {
+            constructor(type) {
+                this.type = type; 
+                this.reset();
+            }
+
+            reset() {
+                if (this.type === 'tree') {
+                    this.angle = Math.random() * Math.PI * 2;
+                    this.hPercent = Math.random(); 
+                    this.y = treeBottomY - this.hPercent * 500; 
+                    
+                    const maxR = 200;
+                    this.r = (1 - this.hPercent) * maxR; 
+                    
+                    const rand = Math.random();
+                    // 调整配色：更多金色和暖光，少一点冷绿
+                    if (rand > 0.95) { // 彩灯
+                        this.color = `hsl(${Math.random() * 50 + 330}, 100%, 65%)`; // 粉红到红色的暖光
+                        this.size = 3.5;
+                        this.isDecoration = true;
+                    } else if (rand > 0.85) { // 金色装饰
+                        this.color = '#FFD700'; 
+                        this.size = 3;
+                        this.isDecoration = true;
+                    } else { // 树叶 (深绿带暖)
+                        const green = Math.floor(60 + Math.random() * 40);
+                        this.color = `rgba(10, ${green + 40}, 20, 0.7)`; // 稍微亮一点的绿
+                        this.size = 1.8;
+                        this.isDecoration = false;
+                    }
+                } else { // 雪花
+                    this.x = Math.random() * w;
+                    this.y = Math.random() * h;
+                    this.z = Math.random() * 2 + 0.5; 
+                    this.size = Math.random() * 2.5;
+                    this.color = 'rgba(255, 255, 255, 0.7)';
+                }
+            }
+
+            update() {
+                if (this.type === 'tree') {
+                    // 旋转速度
+                    this.drawX = w/2 + Math.cos(this.angle + angle) * this.r;
+                    this.drawZ = Math.sin(this.angle + angle) * this.r; 
+                    this.drawSize = this.size * (1 + this.drawZ / 500); 
+                } else {
+                    this.y += this.z;
+                    if (this.y > h) this.y = -10;
+                    this.x += Math.sin(Date.now() * 0.001 + this.z) * 0.3;
+                }
+            }
+
+            draw() {
+                if (this.type === 'tree') {
+                    ctx.beginPath();
+                    ctx.arc(this.drawX, this.y, this.drawSize, 0, Math.PI * 2);
+                    ctx.fillStyle = this.color;
+                    if (this.isDecoration && this.drawZ > 0) { 
+                        ctx.shadowBlur = 10;
+                        ctx.shadowColor = this.color;
+                    } else {
+                        ctx.shadowBlur = 0;
+                    }
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fillStyle = this.color;
+                    ctx.fill();
+                }
+            }
+        }
+
+        function init() {
+            particles = [];
+            for(let i=0; i<3000; i++) particles.push(new Particle('tree'));
+            for(let i=0; i<150; i++) particles.push(new Particle('snow'));
+        }
+
+        // 顶端大星星
+        function drawTopStar() {
+            const cx = w/2;
+            const cy = treeBottomY - 500; 
+            const outerR = 25;
+            const innerR = 12;
+            const spikes = 5;
+            
+            ctx.save();
+            ctx.beginPath();
+            ctx.translate(cx, cy);
+            ctx.rotate(-Math.PI / 2 + Math.sin(Date.now()*0.003)*0.2); // 星星微微摆动
+            ctx.moveTo(outerR, 0);
+            for (let i = 0; i < spikes * 2; i++) {
+                const r = (i % 2 === 0) ? outerR : innerR;
+                const a = (Math.PI * i) / spikes;
+                ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+            }
+            ctx.closePath();
+            ctx.fillStyle = "#FFD700";
+            ctx.shadowBlur = 30;
+            ctx.shadowColor = "rgba(255, 215, 0, 0.8)";
+            ctx.fill();
+            
+            // 星星中心文字
+            ctx.rotate(Math.PI/2);
+            ctx.font = "10px Arial";
+            ctx.fillStyle = "#FFF";
+            ctx.textAlign = "center";
+            ctx.fillText("LOVE", 0, 4);
+            
+            ctx.restore();
+        }
+
+        function animate() {
+            // 背景拖尾，制造梦幻感
+            ctx.fillStyle = 'rgba(2, 1, 17, 0.5)'; 
+            ctx.fillRect(0, 0, w, h);
+
+            angle += 0.008; // 旋转速度
+
+            drawTrunk();
+            drawMomAndChild(); // 绘制母子剪影
+
+            particles.sort((a, b) => {
+                if(a.type !== 'tree' || b.type !== 'tree') return 0;
+                return a.drawZ - b.drawZ;
+            });
+
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            drawTopStar();
+            requestAnimationFrame(animate);
+        }
+
+        init();
+        animate();
+
+    </script>
+</body>
 </html>
